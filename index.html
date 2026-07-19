@@ -160,6 +160,25 @@
     font-size: 14.5px;
     line-height: 1.55;
     white-space: pre-wrap;
+    }
+  .bubble .msg-heading {
+    font-weight: 600;
+    color: var(--substrate-copper-bright);
+    margin-top: 10px;
+    margin-bottom: 2px;
+  }
+  .bubble .msg-heading:first-child { margin-top: 0; }
+  .bubble .msg-bullet {
+    padding-left: 14px;
+    position: relative;
+    margin: 2px 0;
+  }
+  .bubble .msg-bullet::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--substrate-copper);
+  }
   }
   .msg.assistant .bubble {
     background: var(--carbon-900);
@@ -349,6 +368,21 @@
   const sendBtn = document.getElementById('send-btn');
   const suggestions = document.getElementById('suggestions');
 
+  function formatMessage(text) {
+    let escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    escaped = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    escaped = escaped.replace(/^# (.+)$/gm, '<div class="msg-heading">$1</div>');
+    escaped = escaped.replace(/^- (.+)$/gm, '<div class="msg-bullet">$1</div>');
+    escaped = escaped.replace(/\n{2,}/g, '<br><br>');
+    escaped = escaped.replace(/\n/g, '<br>');
+
+    return escaped;
+  }
+
   function addMessage(role, text) {
     const msg = document.createElement('div');
     msg.className = `msg ${role}`;
@@ -356,7 +390,12 @@
       <div class="label">${role === 'user' ? 'Siz' : 'Assistant'}</div>
       <div class="bubble"></div>
     `;
-    msg.querySelector('.bubble').textContent = text;
+    const bubble = msg.querySelector('.bubble');
+    if (role === 'assistant') {
+      bubble.innerHTML = formatMessage(text);
+    } else {
+      bubble.textContent = text;
+    }
     chat.appendChild(msg);
     chat.scrollTop = chat.scrollHeight;
     return msg;
