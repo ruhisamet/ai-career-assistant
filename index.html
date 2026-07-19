@@ -340,6 +340,7 @@
 <script>
   // ⚠️ Worker kurulduktan sonra bu URL'i değiştireceğiz (Adım 6/7'de).
   const WORKER_URL = "https://ruhisamet-careerassistant.ruhisamet-gok.workers.dev";
+  let conversationHistory = [];
 
   const chat = document.getElementById('chat');
   const form = document.getElementById('chat-form');
@@ -382,6 +383,7 @@
     if (suggestions) suggestions.remove();
 
     addMessage('user', text);
+    conversationHistory.push({ role: 'user', content: text });
     input.value = '';
     sendBtn.disabled = true;
     addTyping();
@@ -390,11 +392,13 @@
       const res = await fetch(WORKER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text })
+        body: JSON.stringify({ messages: conversationHistory })
       });
       const data = await res.json();
       removeTyping();
-      addMessage('assistant', data.reply || 'Üzgünüm, bir cevap alamadım.');
+      const reply = data.reply || 'Üzgünüm, bir cevap alamadım.';
+      addMessage('assistant', reply);
+      conversationHistory.push({ role: 'assistant', content: reply });
     } catch (err) {
       removeTyping();
       addMessage('assistant', 'Bağlantı hatası oluştu. Lütfen daha sonra tekrar deneyin.');
