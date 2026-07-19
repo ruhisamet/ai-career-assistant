@@ -434,11 +434,41 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: conversationHistory })
       });
-      const data = await res.json();
+
       removeTyping();
-      const reply = data.reply || 'Üzgünüm, bir cevap alamadım.';
-      addMessage('assistant', reply);
-      conversationHistory.push({ role: 'assistant', content: reply });
+
+      const msgEl = addMessage('assistant', '');
+      const bubble = msgEl.querySelector('.bubble');
+      let fullText = '';
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith('data:')) continue;
+          const dataStr = trimmed.slice(5).trim();
+          if (dataStr === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(dataStr);
+            const token = parsed.response || '';
+            fullText += token;
+            bubble.textContent = fullText;
+            chat.scrollTop = chat.scrollHeight;
+          } catch (e) {}
+        }
+      }
+
+      bubble.innerHTML = formatMessage(fullText);
+      conversationHistory.push({ role: 'assistant', content: fullText });
     } catch (err) {
       removeTyping();
       addMessage('assistant', 'Bağlantı hatası oluştu. Lütfen daha sonra tekrar deneyin.');
@@ -448,7 +478,6 @@
       input.focus();
     }
   }
-
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     sendMessage(input.value);
